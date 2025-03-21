@@ -26,6 +26,18 @@ class Race {
     'spdBonus': spdBonus,
     'description': description,
   };
+  
+  static Race fromJson(Map<String, dynamic> json) {
+    return Race(
+      name: json['name'],
+      hpBonus: json['hpBonus'],
+      mpBonus: json['mpBonus'],
+      atkBonus: json['atkBonus'],
+      defBonus: json['defBonus'],
+      spdBonus: json['spdBonus'],
+      description: json['description'],
+    );
+  }
 
   static const List<Race> races = [
     Race(

@@ -1,13 +1,55 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
+import '../models/character_manager.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/skill_list.dart';
 
-class CharacterScreen extends StatelessWidget {
+class CharacterScreen extends StatefulWidget {
   const CharacterScreen({super.key});
 
   @override
+  State<CharacterScreen> createState() => _CharacterScreenState();
+}
+
+class _CharacterScreenState extends State<CharacterScreen> {
+  final CharacterManager _characterManager = CharacterManager();
+  Character? _character;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCharacter();
+  }
+
+  Future<void> _loadCharacter() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await _characterManager.loadCharacters();
+    
+    setState(() {
+      _character = _characterManager.activeCharacter;
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading || _character == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Character Stats'),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final expToNextLevel = _character!.level * 100;
+    final currentExp = _character!.exp;
+    final expProgress = currentExp / expToNextLevel;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Character Stats'),
@@ -22,21 +64,34 @@ class CharacterScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    const CircleAvatar(
+                    // Character avatar
+                    CircleAvatar(
                       radius: 40,
-                      child: Icon(Icons.person, size: 40),
+                      backgroundColor: Colors.grey.shade200,
+                      child: Text(
+                        _character!.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Level 1 Human Warrior',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      _character!.name,
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: 0.5,
-                      backgroundColor: Colors.grey[200],
+                    Text(
+                      'Level ${_character!.level} ${_character!.race.name} ${_character!.job.name}',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const Text('EXP: 50/100'),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: expProgress,
+                      backgroundColor: Colors.grey[200],
+                      minHeight: 10,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('EXP: $currentExp/$expToNextLevel'),
                   ],
                 ),
               ),
@@ -54,40 +109,42 @@ class CharacterScreen extends StatelessWidget {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 StatCard(
                   label: 'HP',
-                  value: 100,
+                  value: _character!.hp,
+                  maxValue: _character!.maxHp,
                   color: Colors.red,
                   icon: Icons.favorite,
                 ),
                 StatCard(
                   label: 'MP',
-                  value: 50,
+                  value: _character!.mp,
+                  maxValue: _character!.maxMp,
                   color: Colors.blue,
                   icon: Icons.local_fire_department,
                 ),
                 StatCard(
                   label: 'ATK',
-                  value: 15,
+                  value: _character!.atk,
                   color: Colors.orange,
                   icon: Icons.sports_kabaddi,
                 ),
                 StatCard(
                   label: 'DEF',
-                  value: 12,
+                  value: _character!.def,
                   color: Colors.green,
                   icon: Icons.shield,
                 ),
                 StatCard(
                   label: 'SPD',
-                  value: 10,
+                  value: _character!.spd,
                   color: Colors.purple,
                   icon: Icons.speed,
                 ),
                 StatCard(
                   label: 'Skill %',
-                  value: 50,
+                  value: (_character!.skillProbability * 100).round(),
                   color: Colors.cyan,
                   icon: Icons.auto_awesome,
                   isPercentage: true,
@@ -100,7 +157,7 @@ class CharacterScreen extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const SkillList(),
+            SkillList(skills: _character!.skills),
           ],
         ),
       ),

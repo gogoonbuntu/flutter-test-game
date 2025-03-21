@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/skill.dart';
 import '../models/item.dart';
 import '../models/game_state.dart';
+import '../services/notification_service.dart';
 import 'dart:math';
 
 class BattleScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class BattleScreen extends StatefulWidget {
 
 class BattleScreenState extends State<BattleScreen> {
   final GameState gameState = GameState();
+  final NotificationService _notificationService = NotificationService();
   late int enemyHp;
   late int enemyMaxHp;
   late String enemyName;
@@ -24,6 +26,7 @@ class BattleScreenState extends State<BattleScreen> {
   void initState() {
     super.initState();
     _initializeEnemy();
+    _notificationService.addNotification('Battle started with $enemyName!');
   }
 
   void _initializeEnemy() {
@@ -178,6 +181,9 @@ class BattleScreenState extends State<BattleScreen> {
         battleLog.removeLast();
       }
     });
+    
+    // Also add to the global notification service
+    _notificationService.addNotification(message);
   }
 
   void _showVictoryDialog(int expGain, int goldGain) {
@@ -186,14 +192,17 @@ class BattleScreenState extends State<BattleScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Victory!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('You defeated $enemyName!'),
-            Text('Gained $expGain EXP!'),
-            Text('Gained $goldGain Gold!'),
-          ],
+        content: SizedBox(
+          width: double.minPositive,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('You defeated $enemyName!'),
+              Text('Gained $expGain EXP!'),
+              Text('Gained $goldGain Gold!'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -214,12 +223,15 @@ class BattleScreenState extends State<BattleScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Defeat'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('You were defeated...'),
-            const Text('Lost 50 Gold'),
-          ],
+        content: SizedBox(
+          width: double.minPositive,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('You were defeated...'),
+              const Text('Lost 50 Gold'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -265,104 +277,116 @@ class BattleScreenState extends State<BattleScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Enemy section
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    const Icon(Icons.catching_pokemon, size: 48),
-                    Text(
-                      enemyName,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: enemyHp / enemyMaxHp,
-                      color: Colors.red,
-                      backgroundColor: Colors.red.withOpacity(0.2),
-                    ),
-                    Text('HP: $enemyHp / $enemyMaxHp'),
-                  ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Enemy section
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.catching_pokemon, size: 48),
+                      Text(
+                        enemyName,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: enemyHp / enemyMaxHp,
+                        color: Colors.red,
+                        backgroundColor: Colors.red.withOpacity(0.2),
+                        minHeight: 10,
+                      ),
+                      Text('HP: $enemyHp / $enemyMaxHp'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Player status
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Column(
-                          children: [
-                            const Text('HP'),
-                            LinearProgressIndicator(
-                              value: character.hp / character.maxHp,
-                              color: Colors.red,
-                              backgroundColor: Colors.red.withOpacity(0.2),
-                              minHeight: 10,
+              const SizedBox(height: 16),
+              
+              // Player status
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                const Text('HP'),
+                                LinearProgressIndicator(
+                                  value: character.hp / character.maxHp,
+                                  color: Colors.red,
+                                  backgroundColor: Colors.red.withOpacity(0.2),
+                                  minHeight: 10,
+                                ),
+                                Text('${character.hp} / ${character.maxHp}'),
+                              ],
                             ),
-                            Text('${character.hp} / ${character.maxHp}'),
-                          ],
-                        ),
-                        Column(
-                          children: [
-                            const Text('MP'),
-                            LinearProgressIndicator(
-                              value: character.mp / character.maxMp,
-                              color: Colors.blue,
-                              backgroundColor: Colors.blue.withOpacity(0.2),
-                              minHeight: 10,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                const Text('MP'),
+                                LinearProgressIndicator(
+                                  value: character.mp / character.maxMp,
+                                  color: Colors.blue,
+                                  backgroundColor: Colors.blue.withOpacity(0.2),
+                                  minHeight: 10,
+                                ),
+                                Text('${character.mp} / ${character.maxMp}'),
+                              ],
                             ),
-                            Text('${character.mp} / ${character.maxMp}'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Battle log
-            Card(
-              child: Container(
-                height: 120,
-                padding: const EdgeInsets.all(8.0),
-                child: ListView.builder(
-                  reverse: true,
-                  itemCount: battleLog.length,
-                  itemBuilder: (context, index) => Text(
-                    battleLog[index],
-                    style: TextStyle(
-                      color: index == 0 ? Colors.black : Colors.grey,
+              // Battle log
+              Card(
+                child: Container(
+                  height: 120,
+                  padding: const EdgeInsets.all(8.0),
+                  child: ListView.builder(
+                    reverse: true,
+                    itemCount: battleLog.length,
+                    itemBuilder: (context, index) => Text(
+                      battleLog[index],
+                      style: TextStyle(
+                        color: index == 0 ? Colors.black : Colors.grey,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Skills
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                children: character.skills.map((skill) => _buildSkillButton(skill)).toList(),
+              // Skills
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.5, 
+                  children: character.skills.map((skill) => _buildSkillButton(skill)).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -381,6 +405,7 @@ class BattleScreenState extends State<BattleScreen> {
           padding: const EdgeInsets.all(8.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 skill.name,
@@ -389,6 +414,7 @@ class BattleScreenState extends State<BattleScreen> {
                   fontWeight: FontWeight.bold,
                   color: canUse ? Colors.black : Colors.grey,
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
@@ -398,10 +424,6 @@ class BattleScreenState extends State<BattleScreen> {
               Text(
                 'MP: ${skill.mpCost}',
                 style: TextStyle(color: canUse ? Colors.blue : Colors.grey),
-              ),
-              Text(
-                '${(skill.probability * 100).toInt()}% Hit',
-                style: TextStyle(color: canUse ? Colors.purple : Colors.grey),
               ),
             ],
           ),

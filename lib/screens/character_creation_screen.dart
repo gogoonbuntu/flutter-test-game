@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/character.dart';
 import '../models/race.dart';
 import '../models/job.dart';
-import '../models/game_state.dart';
+import '../models/character_manager.dart';
+import '../services/notification_service.dart';
 import 'home_screen.dart';
 
 class CharacterCreationScreen extends StatefulWidget {
@@ -17,7 +18,19 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
   final _nameController = TextEditingController();
   Race selectedRace = Race.races.first;
   Job selectedJob = Job.jobs.first;
-  final GameState gameState = GameState();
+  final CharacterManager _characterManager = CharacterManager();
+  final NotificationService _notificationService = NotificationService();
+  String selectedAvatar = 'avatar_1.png';
+  
+  // List of available avatars
+  final List<String> avatars = [
+    'avatar_1.png',
+    'avatar_2.png',
+    'avatar_3.png',
+    'avatar_4.png',
+    'avatar_5.png',
+    'avatar_6.png',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +45,57 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Avatar selection
+              Center(
+                child: Column(
+                  children: [
+                    const Text(
+                      'Choose Avatar',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 100,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: avatars.length,
+                        itemBuilder: (context, index) {
+                          final avatar = avatars[index];
+                          final isSelected = avatar == selectedAvatar;
+                          
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedAvatar = avatar;
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected ? Theme.of(context).primaryColor : Colors.transparent,
+                                  width: 3,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 40,
+                                backgroundColor: Colors.grey.shade200,
+                                child: Text(
+                                  avatar.substring(7, 8),
+                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -107,10 +171,12 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
         name: _nameController.text,
         race: selectedRace,
         job: selectedJob,
+        avatar: selectedAvatar,
       );
       
-      gameState.character = character;
-      gameState.saveGame();
+      // Add character to the character manager
+      _characterManager.addCharacter(character);
+      _notificationService.addNotification('Created new character: ${character.name}');
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),

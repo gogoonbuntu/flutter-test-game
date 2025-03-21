@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class StatCard extends StatelessWidget {
   final String label;
   final int value;
+  final int? maxValue;
   final Color color;
   final IconData icon;
   final bool isPercentage;
@@ -11,6 +12,7 @@ class StatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    this.maxValue,
     required this.color,
     required this.icon,
     this.isPercentage = false,
@@ -36,14 +38,36 @@ class StatCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                isPercentage ? '$value%' : value.toString(),
-                style: TextStyle(
-                  fontSize: 20,
-                  color: color,
-                  fontWeight: FontWeight.bold,
+              if (maxValue != null)
+                Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: value / maxValue!,
+                      backgroundColor: color.withOpacity(0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 8,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$value / $maxValue',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  isPercentage ? '$value%' : value.toString(),
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
