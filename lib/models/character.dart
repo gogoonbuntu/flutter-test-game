@@ -3,37 +3,45 @@ import 'race.dart';
 import 'job.dart';
 import 'skill.dart';
 import 'item.dart';
+import 'benefit.dart';
+import 'pet.dart';
 
 class Character {
   int id = 0; // Unique identifier for character management
   final String name;
   final String avatar; // Avatar image name
-  Race race;
-  Job job;
+  final Race race;
+  final Job job;
   int level;
+  int exp;
+  int gold;
   int hp;
+  int maxHp;
   int mp;
+  int maxMp;
   int atk;
   int def;
   int spd;
-  int exp;
-  int gold;
   double skillProbability;
+  double criticalChance;
+  double criticalDamage;
+  int regenerationBonus;
+  int maxShield;
+  int shield;
   List<Skill> skills;
   List<Item> inventory;
+  List<Pet> pets;
+  int maxHpBonus;
+  int maxMpBonus;
+  int atkBonus;
+  int defBonus;
+  int spdBonus;
   DateTime _lastRegenTime = DateTime.now();
   Timer? _regenTimer;
 
-  // Add max stats
-  int get maxHp => 100 + (level - 1) * 10 + race.hpBonus + job.hpBonus;
-  int get maxMp => 50 + (level - 1) * 5 + race.mpBonus + job.mpBonus;
-  int get baseAtk => 10 + (level - 1) * 2 + race.atkBonus + job.atkBonus;
-  int get baseDef => 10 + (level - 1) * 2 + race.defBonus + job.defBonus;
-  int get baseSpd => 10 + (level - 1) * 1 + race.spdBonus + job.spdBonus;
-  
   // Regeneration rates per minute
-  int get hpRegenRate => 5 + (level ~/ 5);
-  int get mpRegenRate => 3 + (level ~/ 5);
+  int get hpRegenRate => 5 + (level ~/ 5) + regenerationBonus;
+  int get mpRegenRate => 3 + (level ~/ 5) + (regenerationBonus ~/ 2);
 
   Character({
     required this.name,
@@ -42,22 +50,35 @@ class Character {
     this.avatar = 'default_avatar.png',
     this.id = 0,
     this.level = 1,
-    int? hp,
-    int? mp,
-    this.atk = 10,
-    this.def = 10,
-    this.spd = 10,
     this.exp = 0,
     this.gold = 0,
-    this.skillProbability = 0.5,
+    this.maxHpBonus = 0,
+    this.maxMpBonus = 0,
+    this.atkBonus = 0,
+    this.defBonus = 0,
+    this.spdBonus = 0,
+    this.skillProbability = 1.0,
+    this.criticalChance = 0.05,
+    this.criticalDamage = 1.5,
+    this.regenerationBonus = 0,
+    this.maxShield = 0,
+    this.shield = 0,
     List<Skill>? skills,
     List<Item>? inventory,
-  }) : skills = skills ?? [],
-       inventory = inventory ?? [],
-       hp = hp ?? (100 + race.hpBonus + job.hpBonus),
-       mp = mp ?? (50 + race.mpBonus + job.mpBonus) {
+    List<Pet>? pets,
+  }) : 
+    skills = skills ?? [],
+    inventory = inventory ?? [],
+    pets = pets ?? [],
+    hp = RaceData.raceData[race]!.hpBonus + JobData.jobData[job]!.hpBonus + 100,
+    maxHp = RaceData.raceData[race]!.hpBonus + JobData.jobData[job]!.hpBonus + 100,
+    mp = RaceData.raceData[race]!.mpBonus + JobData.jobData[job]!.mpBonus + 50,
+    maxMp = RaceData.raceData[race]!.mpBonus + JobData.jobData[job]!.mpBonus + 50,
+    atk = RaceData.raceData[race]!.atkBonus + JobData.jobData[job]!.atkBonus + 10,
+    def = RaceData.raceData[race]!.defBonus + JobData.jobData[job]!.defBonus + 5,
+    spd = RaceData.raceData[race]!.spdBonus + JobData.jobData[job]!.spdBonus + 5 {
     // Initialize with job skills
-    this.skills.addAll(job.skills);
+    this.skills.addAll(JobData.jobData[job]!.skills);
     
     // Start regeneration timer
     startRegeneration();
@@ -215,17 +236,23 @@ class Character {
 
   void gainExp(int amount) {
     exp += amount;
-    while (exp >= 100) {
+    while (exp >= _getExpForNextLevel()) {
       levelUp();
     }
   }
 
   void levelUp() {
     level++;
-    exp = exp - 100;
-    gold += 100;
+    exp -= _getExpForNextLevel();
     
-    // Heal on level up
+    // 스탯 증가
+    maxHp += 20;
+    maxMp += 10;
+    atk += 2;
+    def += 1;
+    spd += 1;
+    
+    // HP/MP 회복
     hp = maxHp;
     mp = maxMp;
     
@@ -233,12 +260,25 @@ class Character {
     learnNewSkill();
   }
 
+  int _getExpForNextLevel() {
+    return level * 100;
+  }
+
   bool useSkill(Skill skill) {
-    if (mp < skill.mpCost) return false;
-    if (skillProbability < skill.probability) return false;
-    
-    mp -= skill.mpCost;
-    return true;
+    if (mp >= skill.mpCost && !skill.isOnCooldown) {
+      mp -= skill.mpCost;
+      final updatedSkill = skill.use();
+      final index = skills.indexWhere((s) => s.name == skill.name);
+      if (index != -1) {
+        skills[index] = updatedSkill;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  void reduceSkillCooldowns(int seconds) {
+    skills = skills.map((skill) => skill.reduceCooldown(seconds)).toList();
   }
 
   void heal(int amount) {
@@ -253,24 +293,49 @@ class Character {
     inventory.add(item);
   }
 
+  void useItem(Item item) {
+    if (item.type == ItemType.potion) {
+      if (item.stats.containsKey('HP')) {
+        hp = (hp + item.stats['HP']!).clamp(0, maxHp);
+      }
+      if (item.stats.containsKey('MP')) {
+        mp = (mp + item.stats['MP']!).clamp(0, maxMp);
+      }
+    }
+    inventory.remove(item);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'avatar': avatar,
-      'race': race.toJson(),
-      'job': job.toJson(),
+      'race': race.toString(),
+      'job': job.toString(),
       'level': level,
+      'exp': exp,
+      'gold': gold,
       'hp': hp,
+      'maxHp': maxHp,
       'mp': mp,
+      'maxMp': maxMp,
       'atk': atk,
       'def': def,
       'spd': spd,
-      'exp': exp,
-      'gold': gold,
       'skillProbability': skillProbability,
+      'criticalChance': criticalChance,
+      'criticalDamage': criticalDamage,
+      'regenerationBonus': regenerationBonus,
+      'maxShield': maxShield,
+      'shield': shield,
+      'maxHpBonus': maxHpBonus,
+      'maxMpBonus': maxMpBonus,
+      'atkBonus': atkBonus,
+      'defBonus': defBonus,
+      'spdBonus': spdBonus,
       'skills': skills.map((s) => s.toJson()).toList(),
       'inventory': inventory.map((i) => i.toJson()).toList(),
+      'pets': pets.map((p) => p.toJson()).toList(),
       'lastRegenTime': _lastRegenTime.millisecondsSinceEpoch,
     };
   }
@@ -280,22 +345,27 @@ class Character {
       id: json['id'] ?? 0,
       name: json['name'],
       avatar: json['avatar'] ?? 'default_avatar.png',
-      race: Race.fromJson(json['race']),
-      job: Job.fromJson(json['job']),
+      race: Race.values.firstWhere((e) => e.toString() == json['race']),
+      job: Job.values.firstWhere((e) => e.toString() == json['job']),
       level: json['level'],
-      hp: json['hp'],
-      mp: json['mp'],
-      atk: json['atk'],
-      def: json['def'],
-      spd: json['spd'],
       exp: json['exp'],
       gold: json['gold'],
+      maxHpBonus: json['maxHpBonus'] ?? 0,
+      maxMpBonus: json['maxMpBonus'] ?? 0,
+      atkBonus: json['atkBonus'] ?? 0,
+      defBonus: json['defBonus'] ?? 0,
+      spdBonus: json['spdBonus'] ?? 0,
       skillProbability: json['skillProbability'],
-      skills: (json['skills'] as List).map((s) => Skill.fromJson(s)).toList(),
-      inventory: (json['inventory'] as List).map((i) => Item.fromJson(i)).toList(),
+      criticalChance: json['criticalChance'] ?? 0.05,
+      criticalDamage: json['criticalDamage'] ?? 1.5,
+      regenerationBonus: json['regenerationBonus'] ?? 0,
+      maxShield: json['maxShield'] ?? 0,
+      shield: json['shield'] ?? 0,
+      skills: (json['skills'] as List).map((s) => Skill.fromJson(s as Map<String, dynamic>)).toList(),
+      inventory: (json['inventory'] as List).map((i) => Item.fromJson(i as Map<String, dynamic>)).toList(),
+      pets: (json['pets'] as List).map((p) => Pet.fromJson(p as Map<String, dynamic>)).toList(),
     );
     
-    // Set the last regeneration time
     if (json.containsKey('lastRegenTime')) {
       character._lastRegenTime = DateTime.fromMillisecondsSinceEpoch(json['lastRegenTime']);
     }

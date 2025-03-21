@@ -16,8 +16,8 @@ class CharacterCreationScreen extends StatefulWidget {
 class CharacterCreationScreenState extends State<CharacterCreationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  Race selectedRace = Race.races.first;
-  Job selectedJob = Job.jobs.first;
+  Race selectedRace = Race.values.first;
+  Job selectedJob = Job.values.first;
   final CharacterManager _characterManager = CharacterManager();
   final NotificationService _notificationService = NotificationService();
   String selectedAvatar = 'avatar_1.png';
@@ -36,7 +36,7 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Character'),
+        title: const Text('캐릭터 생성'),
       ),
       body: Form(
         key: _formKey,
@@ -50,7 +50,7 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
                 child: Column(
                   children: [
                     const Text(
-                      'Choose Avatar',
+                      '아바타 선택',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
@@ -99,25 +99,25 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Character Name',
+                  labelText: '캐릭터 이름',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
+                    return '이름을 입력해주세요';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 24),
               const Text(
-                'Choose Race',
+                '인종 선택',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              ...Race.races.map((race) => RadioListTile<Race>(
-                    title: Text(race.name),
-                    subtitle: Text(race.description),
+              ...Race.values.map((race) => RadioListTile<Race>(
+                    title: Text(RaceData.raceData[race]!.name),
+                    subtitle: Text(RaceData.raceData[race]!.description),
                     value: race,
                     groupValue: selectedRace,
                     onChanged: (Race? value) {
@@ -130,13 +130,13 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
                   )),
               const SizedBox(height: 24),
               const Text(
-                'Choose Class',
+                '직업 선택',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              ...Job.jobs.map((job) => RadioListTile<Job>(
-                    title: Text(job.name),
-                    subtitle: Text(job.description),
+              ...Job.values.map((job) => RadioListTile<Job>(
+                    title: Text(JobData.jobData[job]!.name),
+                    subtitle: Text(JobData.jobData[job]!.description),
                     value: job,
                     groupValue: selectedJob,
                     onChanged: (Job? value) {
@@ -154,7 +154,7 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
                   padding: const EdgeInsets.all(16),
                 ),
                 child: const Text(
-                  'Create Character',
+                  '캐릭터 생성',
                   style: TextStyle(fontSize: 18),
                 ),
               ),
@@ -176,7 +176,7 @@ class CharacterCreationScreenState extends State<CharacterCreationScreen> {
       
       // Add character to the character manager
       _characterManager.addCharacter(character);
-      _notificationService.addNotification('Created new character: ${character.name}');
+      _notificationService.addNotification('새로운 캐릭터를 생성했습니다: ${character.name}');
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),

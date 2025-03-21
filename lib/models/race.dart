@@ -1,4 +1,12 @@
-class Race {
+enum Race {
+  human,
+  elf,
+  dwarf,
+  orc,
+  undead
+}
+
+class RaceData {
   final String name;
   final int hpBonus;
   final int mpBonus;
@@ -7,7 +15,7 @@ class Race {
   final int spdBonus;
   final String description;
 
-  const Race({
+  const RaceData({
     required this.name,
     required this.hpBonus,
     required this.mpBonus,
@@ -27,8 +35,8 @@ class Race {
     'description': description,
   };
   
-  static Race fromJson(Map<String, dynamic> json) {
-    return Race(
+  static RaceData fromJson(Map<String, dynamic> json) {
+    return RaceData(
       name: json['name'],
       hpBonus: json['hpBonus'],
       mpBonus: json['mpBonus'],
@@ -39,8 +47,8 @@ class Race {
     );
   }
 
-  static const List<Race> races = [
-    Race(
+  static const Map<Race, RaceData> raceData = {
+    Race.human: RaceData(
       name: 'Human',
       hpBonus: 20,
       mpBonus: 20,
@@ -49,7 +57,7 @@ class Race {
       spdBonus: 2,
       description: 'Balanced race with no weaknesses',
     ),
-    Race(
+    Race.elf: RaceData(
       name: 'Elf',
       hpBonus: 0,
       mpBonus: 50,
@@ -58,7 +66,7 @@ class Race {
       spdBonus: 5,
       description: 'High MP and Speed, but low HP',
     ),
-    Race(
+    Race.dwarf: RaceData(
       name: 'Dwarf',
       hpBonus: 50,
       mpBonus: 0,
@@ -67,5 +75,23 @@ class Race {
       spdBonus: -2,
       description: 'High HP and Defense, but low Speed',
     ),
-  ];
+    Race.orc: RaceData(
+      name: 'Orc',
+      hpBonus: 40,
+      mpBonus: 0,
+      atkBonus: 5,
+      defBonus: 3,
+      spdBonus: 0,
+      description: 'Strong physical attacker with high HP',
+    ),
+    Race.undead: RaceData(
+      name: 'Undead',
+      hpBonus: 30,
+      mpBonus: 30,
+      atkBonus: 2,
+      defBonus: 2,
+      spdBonus: 1,
+      description: 'Balanced undead with special abilities',
+    ),
+  };
 }

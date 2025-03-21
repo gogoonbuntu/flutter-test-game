@@ -3,11 +3,13 @@ import 'character.dart';
 import 'item.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'character_manager.dart';
 
 class GameState extends ChangeNotifier {
   Character? character;
   List<Item> inventory = [];
   static final GameState _instance = GameState._internal();
+  final CharacterManager _characterManager = CharacterManager();
 
   factory GameState() {
     return _instance;
@@ -16,28 +18,22 @@ class GameState extends ChangeNotifier {
   GameState._internal();
 
   Future<void> loadGame() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? savedCharacter = prefs.getString('character');
-    final String? savedInventory = prefs.getString('inventory');
-
-    if (savedCharacter != null) {
-      final Map<String, dynamic> characterJson = json.decode(savedCharacter);
-      character = Character.fromJson(characterJson);
+    await _characterManager.loadCharacters();
+    character = _characterManager.activeCharacter;
+    
+    if (character != null) {
+      inventory = character!.inventory;
     }
-
-    if (savedInventory != null) {
-      final List<dynamic> inventoryJson = json.decode(savedInventory);
-      inventory = inventoryJson.map((item) => Item.fromJson(item)).toList();
-    }
+    
     notifyListeners();
   }
 
   Future<void> saveGame() async {
-    final prefs = await SharedPreferences.getInstance();
     if (character != null) {
-      await prefs.setString('character', json.encode(character!.toJson()));
+      character!.inventory = inventory;
+      _characterManager.updateCharacter(character!);
+      await _characterManager.saveCharacters();
     }
-    await prefs.setString('inventory', json.encode(inventory.map((item) => item.toJson()).toList()));
   }
 
   void addItem(Item item) {

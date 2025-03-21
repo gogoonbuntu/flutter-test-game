@@ -5,9 +5,11 @@ import 'screens/home_screen.dart';
 import 'screens/character_management_screen.dart';
 import 'widgets/notification_panel.dart';
 import 'services/notification_service.dart';
+import 'services/localization_service.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  LocalizationService().initialize();
   runApp(const MyApp());
 }
 
